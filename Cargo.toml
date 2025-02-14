@@ -3,7 +3,11 @@ name = "bark-dev"
 version = "0.1.0"
 edition = "2021"
 authors = ["66f94eae <66f94eae@gmail.com>"]
-description = "This a library for the bark"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/66f94eae/bark-dev"
+keywords = ["bark", "bark-dev", "bark-ios", "message"]
+description = "This a library for the bark(receive notify on IOS devices)"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
