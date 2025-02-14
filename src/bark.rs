@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use std::time::Duration;
+
 use crate::msg::Msg;
 
 
@@ -56,6 +58,10 @@ impl Bark {
     }
 
     pub fn born(timestamp: u64, token: String) -> Self {
+        if timestamp + TOKEN_OFFSET <= Self::ts() {
+            println!("warning: token expired, bark will new one");
+            return Self::new();
+        }
         Self {
             team_id : TEAM_ID.to_string(),
             auth_key_id : AUTH_KEY_ID.to_string(),
@@ -63,6 +69,13 @@ impl Bark {
             key: KEY.to_string(),
             token: format!("{}.{}", timestamp, token),
         }
+    }
+
+    fn ts() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_else(|_e| Duration::from_secs(0))
+            .as_secs()
     }
 
     /// get apns token
@@ -95,7 +108,7 @@ impl Bark {
     }
 
     fn get_token(&mut self) -> String {
-        let time_stamp: u64 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("get token failed").as_secs();
+        let time_stamp: u64 = Self::ts(); 
 
         if let Some((ts, token)) = self.token.split_once(".") {
             // cache the token in memory for TOKEN_OFFSET[default is 2700] seconds
