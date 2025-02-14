@@ -205,6 +205,12 @@ impl Msg {
         self
     }
 
+    pub fn gen_iv(&mut self) -> &mut Self {
+        let mut iv: [u8; 16] = [0u8; 16];
+        openssl::rand::rand_bytes(&mut iv).unwrap();
+        self.set_iv(iv.iter().map(|b| format!("{:02x}", b)).collect::<String>().split_off(16).as_str())
+    }
+
     fn set_cipher(&mut self) -> &mut Self {
         if self.enc_type.is_none() || self.mode.is_none() {
             return self;
