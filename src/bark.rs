@@ -96,14 +96,20 @@ impl Bark {
     /// send msg to devices
     /// 
     /// return : None if success, or a vector of failed devices and error messages
-    pub fn send(&mut self, msg: &Msg, devices: &Vec<&str>) -> Option<Vec<String>> {
+    pub fn send<T>(&mut self, msg: &Msg, devices: T) -> Option<Vec<String>> 
+    where
+        T: IntoIterator<Item = &'static str> + Copy
+    {
         crate::apns::send(&msg, self.topic.clone().as_str(), &self.get_token(), devices)
     }
 
     /// async send to devices
     /// 
     /// return : None if success, or a vector of failed devices and error messages
-    pub async fn async_send(&mut self, msg: &Msg, devices: &Vec<&str>) -> Option<Vec<String>> {
+    pub async fn async_send<T>(&mut self, msg: &Msg, devices: T) -> Option<Vec<String>>
+    where
+        T: IntoIterator<Item = &'static str> + Copy
+    {
         crate::apns::async_send(&msg, self.topic.clone().as_str(), &self.get_token(), devices).await
     }
 

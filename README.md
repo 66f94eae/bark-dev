@@ -50,8 +50,8 @@ if let Some(failed_device) = send_result {
 let mut bark = bark::Bark::new();
 let mut msg = bark::Message::new("title", "body");
 
-msg.set_enc_type("aes128");
-msg.set_mode("cbc");
+msg.set_enc_type(bark_dev::msg::EncryptType::AES192);
+msg.set_mode(bark_dev::msg::EncryptMode::ECB);
 msg.set_key("the_key_must_the_same_as_bark_app");
 // if you not set iv it will generate a random iv and send it to the server
 msg.set_iv("the_iv_must_the_same_as_bark_app");

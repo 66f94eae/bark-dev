@@ -80,13 +80,13 @@ pub struct Msg {
     /// The URL to jump to when clicking the push, supports URL Scheme and Universal Link
     url: Option<String>,
 
-    /// iv
+    /// iv, 12 Bytes
     iv: Option<String>,
     /// encrypt type
     enc_type: Option<EncryptType>,
     /// encrypt mode
     mode: Option<EncryptMode>,
-    /// encrypt key
+    /// encrypt key, 24 Bytes
     key: Option<String>,
     /// cipher
     cipher: Option<Cipher>,
@@ -336,6 +336,8 @@ impl Msg {
     pub fn set_iv(&mut self, iv: &str) -> &mut Self {
         if iv.trim().is_empty() {
             self.iv = None;
+        } else if iv.len() != 12 {
+            panic!("Invalid IV length. IV must be 12 bytes long.");
         } else {
             self.iv = Some(iv.to_string());
         }
@@ -441,7 +443,6 @@ impl Msg {
         match mode {
             EncryptMode::ECB | EncryptMode::GCM => {
                 if self.iv.is_none() {
-                    println!("ensure iv is set, generate a random iv standby");
                     self.gen_iv();
                 }
             },
@@ -459,6 +460,9 @@ impl Msg {
     /// # Returns
     /// A mutable reference to `self` for method chaining.
     pub fn set_key(&mut self, key: &str) -> &mut Self {
+        if key.len() != 24 {
+            panic!("Invalid key length. Key must be 24 characters long.");
+        }
         self.key = Some(key.to_string());
         self
     }

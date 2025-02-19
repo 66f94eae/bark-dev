@@ -22,14 +22,17 @@
 
 
 use crate::msg::Msg;
-use std::{collections::HashMap, io::Error};
+use std::{collections::{HashMap, HashSet}, io::Error};
 
 const APNS_HOST: &str = "api.push.apple.com";
 
 /// send msg to devices
 /// 
 /// return: None if success, or a vector of failed devices and error messages
-pub fn send(msg: &Msg, topic: &str, token: &str, devices: &Vec<&str>) -> Option<Vec<String>> {
+pub fn send<T>(msg: &Msg, topic: &str, token: &str, devices: T) -> Option<Vec<String>> 
+where 
+    T: IntoIterator<Item = &'static str> + Copy
+{
     let rt: Result<tokio::runtime::Runtime, Error> = tokio::runtime::Runtime::new();
     match rt {
         Ok(rt) => {
@@ -39,7 +42,7 @@ pub fn send(msg: &Msg, topic: &str, token: &str, devices: &Vec<&str>) -> Option<
         },
         Err(e)=> {
             eprintln!("send failed: {}", e);
-            Some(devices.iter().map(|device| device.to_string()).collect())
+            Some(devices.into_iter().map(|device| device.to_string()).collect())
         }
     }
 }
@@ -47,7 +50,10 @@ pub fn send(msg: &Msg, topic: &str, token: &str, devices: &Vec<&str>) -> Option<
 /// async send to devices
 /// 
 /// return: None if success, or a vector of failed devices and error messages 
-pub async fn async_send(msg: &Msg, topic: &str, token: &str, devices: &Vec<&str>) -> Option<Vec<String>> {
+pub async fn async_send<T>(msg: &Msg, topic: &str, token: &str, devices: T) -> Option<Vec<String>> 
+where 
+    T: IntoIterator<Item = &'static str> + Copy
+{
     match do_send(msg, topic, token, devices).await {
         Ok(tasks) => {
             Some(
@@ -62,17 +68,21 @@ pub async fn async_send(msg: &Msg, topic: &str, token: &str, devices: &Vec<&str>
         },
         Err(e) => {
             eprintln!("all failed: {}", e.to_string());
-            Some(devices.iter().map(|device| device.to_string()).collect())
+            Some(devices.into_iter().map(|device| device.to_string()).collect())
         }
     }
         
 }
 
 /// do send to real device
-async fn do_send(msg: &Msg, topic: &str, token: &str, devices: &Vec<&str>) -> Result<HashMap<String, String>, Error> {
+async fn do_send<T>(msg: &Msg, topic: &str, token: &str, devices: T) -> Result<HashMap<String, String>, Error> 
+where
+    T: IntoIterator<Item = &'static str>
+{
     let client: reqwest::Client = reqwest::ClientBuilder::new().http2_prior_knowledge().build().unwrap();
     let mut tasks: HashMap<String, String> = HashMap::new();
     let body: String = msg.serialize();
+    let devices: HashSet<&str> = HashSet::from_iter(devices.into_iter());
     for device  in devices.iter() {
         let token: String = String::from(token);
         let topic: String = String::from(topic);
