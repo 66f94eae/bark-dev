@@ -31,7 +31,7 @@ const APNS_HOST: &str = "api.push.apple.com";
 /// return: None if success, or a vector of failed devices
 pub fn send<T>(msg: &Msg, topic: &str, token: &str, devices: T) -> Option<Vec<String>> 
 where 
-    T: Iterator<Item = String> + Copy
+    T: IntoIterator<Item = String>
 {
     let rt: Result<tokio::runtime::Runtime, Error> = tokio::runtime::Runtime::new();
     match rt {
@@ -42,7 +42,7 @@ where
         },
         Err(e)=> {
             eprintln!("send failed: {}", e);
-            Some(devices.map(|device| device.to_string()).collect())
+            Some(devices.into_iter().map(|device| device.to_string()).collect())
         }
     }
 }
@@ -52,9 +52,10 @@ where
 /// return: None if success, or a vector of failed devices
 pub async fn async_send<T>(msg: &Msg, topic: &str, token: &str, devices: T) -> Option<Vec<String>> 
 where 
-    T: Iterator<Item = String> + Copy
+    T: IntoIterator<Item = String>
 {
-    match do_send(msg, topic, token, devices).await {
+    let devices: Vec<String> = devices.into_iter().collect::<Vec<_>>(); 
+    match do_send(msg, topic, token, devices.clone().into_iter()).await {
         Ok(tasks) => {
             Some(
                 tasks
@@ -68,27 +69,28 @@ where
         },
         Err(e) => {
             eprintln!("all failed: {}", e.to_string());
-            Some(devices.map(|device| device.to_string()).collect())
+            Some(devices)
         }
     }
         
 }
 
 /// do send to real device
-async fn do_send<T>(msg: &Msg, topic: &str, token: &str, devices: T) -> Result<HashMap<String, String>, Error> 
-where
+async fn do_send<T>(msg: &Msg, topic: &str, token: &str, devices: T) -> Result<HashMap<String, String>, Error>
+where 
     T: Iterator<Item = String>
 {
     let client: reqwest::Client = reqwest::ClientBuilder::new().http2_prior_knowledge().build().unwrap();
     let mut tasks: HashMap<String, String> = HashMap::new();
     let body: String = msg.serialize();
+    let devices: HashSet<String> = devices.collect::<HashSet<String>>();
     for device  in devices {
         let resp = 
                 client
                     .post(format!("https://{host}/3/device/{device}", host = APNS_HOST, device = device))
-                    .bearer_auth(token.clone())
+                    .bearer_auth(token)
                     .header("apns-push-type", "alert")
-                    .header("apns-topic", topic.clone())
+                    .header("apns-topic", topic)
                     .body(body.clone())
                     .send().await;
         match resp {

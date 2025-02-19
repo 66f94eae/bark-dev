@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::{str::SplitTerminator, time::Duration};
+use std::time::Duration;
 
 use crate::msg::Msg;
 
@@ -98,7 +98,7 @@ impl Bark {
     /// return : None if success, or a vector of failed devices and error messages
     pub fn send<T>(&mut self, msg: &Msg, devices: T) -> Option<Vec<String>> 
     where
-        T: Iterator<Item = String> + Copy
+        T: IntoIterator<Item = String>
     {
         crate::apns::send(&msg, self.topic.clone().as_str(), &self.get_token(), devices)
     }
@@ -108,7 +108,7 @@ impl Bark {
     /// return : None if success, or a vector of failed devices and error messages
     pub async fn async_send<T>(&mut self, msg: &Msg, devices: T) -> Option<Vec<String>>
     where
-        T: Iterator<Item = String> + Copy
+        T: IntoIterator<Item = String>
     {
         crate::apns::async_send(&msg, self.topic.clone().as_str(), &self.get_token(), devices).await
     }
@@ -161,6 +161,4 @@ impl Bark {
             .replace("/", "_")
             .replace("=", "")
     }
-   
-
 }

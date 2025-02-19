@@ -36,8 +36,8 @@ cargo add bark-dev
 let mut bark = bark::Bark::new();
 let msg = bark::Message::new("title", "body");
 let resp = bark.send(msg);
-let devices = vec!["device_token_get_from_bark_app"];
-let send_result = bark.send(&msg, &devices);
+let devices = [String::from("device_token_get_from_bark_app")];
+let send_result = bark.send(&msg, devices);
 
 if let Some(failed_device) = send_result {
     println!("Failed to send to device: {}", failed_device);
@@ -57,8 +57,8 @@ msg.set_key("the_key_must_the_same_as_bark_app");
 msg.set_iv("the_iv_must_the_same_as_bark_app");
 
 let resp = bark.send(msg);
-let devices = vec!["device_token_get_from_bark_app"];
-let send_result = bark.send(&msg, &devices);
+let devices = [String::from("device_token_get_from_bark_app")];
+let send_result = bark.send(&msg, devices);
 
 if let Some(failed_device) = send_result {
     println!("Failed to send to device: {}", failed_device);
@@ -70,9 +70,9 @@ if let Some(failed_device) = send_result {
 ```rust
 let mut bark = bark::Bark::new();
 let msg = bark::Message::new("title", "body");
-let devices = vec!["device_token_get_from_bark_app"];
+let devices = [String::from("device_token_get_from_bark_app")];
 
-let send_result = bark.async_send(&msg, &devices).await?;
+let send_result = bark.async_send(&msg, devices).await?;
 
 if let Some(failed_device) = send_result {
     println!("Failed to send to device: {}", failed_device);
