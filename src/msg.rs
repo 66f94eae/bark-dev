@@ -21,6 +21,8 @@
 // SOFTWARE.
 
 
+use std::fmt::Display;
+
 use openssl::symm::{Cipher, Crypter, Mode};
 
 /// Push Notification Message structure.
@@ -39,7 +41,7 @@ use openssl::symm::{Cipher, Crypter, Mode};
 /// let mut msg = Msg::with_body("body");
 ///
 /// // set some fields
-/// msg.set_level("active");
+/// msg.set_level(Level::ACTIVE);
 /// msg.set_badge(1);
 /// // and so on
 /// ```
@@ -51,10 +53,13 @@ pub struct Msg {
     body: String,
 
     /// Push Interruption Level
+    /// 
     /// active: Default value, the system will immediately display the notification on the screen.
+    /// 
     /// timeSensitive: Time-sensitive notification, can be displayed while in focus mode.
+    /// 
     /// passive: Only adds the notification to the notification list, will not display on the screen.
-    level: Option<String>,
+    level: Option<Level>,
 
     /// Push Badge, can be any number
     badge: Option<u64>,
@@ -90,6 +95,33 @@ pub struct Msg {
     key: Option<String>,
     /// cipher
     cipher: Option<Cipher>,
+}
+
+
+/// Notification level
+/// 
+/// active: Default value, the system will immediately display the notification on the screen.
+/// 
+/// timeSensitive: Time-sensitive notification, can be displayed while in focus mode.
+/// 
+/// passive: Only adds the notification to the notification list, will not display on the screen.
+#[derive(Clone, Copy)]
+pub enum Level {
+    ACTIVE,
+    TIMESENSITIVE,
+    PASSIVE
+}
+
+impl Display for Level {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = 
+            match self {
+                Level::ACTIVE => "active",
+                Level::TIMESENSITIVE => "timeSensitive",
+                Level::PASSIVE =>"passive"
+            };
+        write!(f, "{}", str)
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -194,17 +226,12 @@ impl Msg {
     /// Sets the interruption level of the notification.
     ///
     /// # Arguments
-    /// - `level`: The interruption level (`active`, `timeSensitive`, or `passive`).
-    ///
+    /// - `level`: The interruption level [`Level`]
+    /// 
     /// # Returns
     /// A mutable reference to `self` for method chaining.
-    pub fn set_level(&mut self, level: &str) -> &mut Self {
-        match level.to_lowercase().as_str() {
-            "active" => self.level = Some("active".to_string()),
-            "timesensitive" => self.level = Some("timeSensitive".to_string()),
-            "passive" => self.level = Some("passive".to_string()),
-            _ => self.level = None,
-        }
+    pub fn set_level(&mut self, level: Level) -> &mut Self {
+        self.level = Some(level);
         self
     }
 
@@ -227,14 +254,14 @@ impl Msg {
     /// Sets whether to automatically copy the notification content.
     ///
     /// # Arguments
-    /// - `auto_copy`: 0 to disable, other values to enable.
+    /// - `auto_copy`: false to disable, true to enable.
     ///
     /// # Returns
     /// A mutable reference to `self` for method chaining.
-    pub fn set_auto_copy(&mut self, auto_copy: u8) -> &mut Self {
+    pub fn set_auto_copy(&mut self, auto_copy: bool) -> &mut Self {
         match auto_copy {
-            0 => self.auto_copy = Some(0),
-            _ => self.auto_copy = None,
+            false => self.auto_copy = Some(0),
+            true => self.auto_copy = None,
         }
         self
     }
@@ -298,14 +325,14 @@ impl Msg {
     /// Sets whether to archive the notification.
     ///
     /// # Arguments
-    /// - `is_archive`: 1 to save, other values to not save.
+    /// - `is_archive`: true to save, false to not save.
     ///
     /// # Returns
     /// A mutable reference to `self` for method chaining.
-    pub fn set_is_archive(&mut self, is_archive: u8) -> &mut Self {
+    pub fn set_is_archive(&mut self, is_archive: bool) -> &mut Self {
         match is_archive {
-            1 => self.is_archive = Some(1),
-            _ => self.is_archive = None,
+            true => self.is_archive = Some(1),
+            false => self.is_archive = None,
         }
         self
     }
@@ -468,7 +495,7 @@ impl Msg {
     }
 
     fn json(&self, encry_body: Option<String>) -> String {
-        let mut body: String = format!("{{\"aps\":{{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"{level}\",", level = self.level.as_ref().unwrap_or(&"active".to_string()));
+        let mut body: String = format!("{{\"aps\":{{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"{level}\",", level = self.level.unwrap_or_else(|| Level::ACTIVE));
 
         if let Some(badge) = self.badge {
             body += &format!("\"badge\":{badge},", badge = badge);
@@ -586,32 +613,32 @@ mod tests {
     #[test]
     fn test_to_json_all_field() {
         let mut msg = Msg::new("Test Title", "Test Body");
-        msg.set_level("timeSensitive");
+        msg.set_level(Level::TIMESENSITIVE);
         msg.set_badge(1);
-        msg.set_auto_copy(1);
+        msg.set_auto_copy(true);
         msg.set_copy("Test Copy");
         msg.set_sound("chime.caf");
         msg.set_icon("icon.png");
         msg.set_group("Test Group");
-        msg.set_is_archive(1);
+        msg.set_is_archive(true);
         msg.set_url("https://example.com");
         let json = msg.to_json();
         println!("{}", json);
-        assert_eq!(json, "{\"aps\":{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"timeSensitive\",\"badge\":1,\"sound\":\"chime.caf\",\"thread-id\":\"Test Group\",\"alert\":{\"title\":\"Test Title\",\"body\":\"Test Body\"},\"icon\":\"icon.png\"},\"isArchive\":1,\"copy\":\"Test Copy\",\"url\":\"https://example.com\"}");
+        assert_eq!(json, "{\"aps\":{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"timeSensitive\",\"badge\":1,\"sound\":\"chime.caf\",\"thread-id\":\"Test Group\",\"alert\":{\"title\":\"Test Title\",\"body\":\"Test Body\"}},\"icon\":\"icon.png\",\"isArchive\":1,\"copy\":\"Test Copy\",\"url\":\"https://example.com\"}");
     }
 
     #[test]
     fn test_to_json_part_field() {
         let mut msg = Msg::new("Test Title", "Test Body");
-        msg.set_level("passive");
+        msg.set_level(Level::PASSIVE);
         msg.set_badge(1);
-        msg.set_auto_copy(1);
+        msg.set_auto_copy(true);
         msg.set_copy("");
         msg.set_sound("chime.caf");
         msg.set_icon("icon.png");
         let json = msg.to_json();
         println!("{}", json);
-        assert_eq!(json, "{\"aps\":{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"passive\",\"badge\":1,\"sound\":\"chime.caf\",\"alert\":{\"title\":\"Test Title\",\"body\":\"Test Body\"},\"icon\":\"icon.png\"}}");
+        assert_eq!(json, "{\"aps\":{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"passive\",\"badge\":1,\"sound\":\"chime.caf\",\"alert\":{\"title\":\"Test Title\",\"body\":\"Test Body\"}},\"icon\":\"icon.png\"}");
     }
 
     #[test]
@@ -619,6 +646,6 @@ mod tests {
         let msg = Msg::new("Test Title", "Test Body");
         let json = msg.to_json();
         println!("{}", json);
-        assert_eq!(json, "{\"aps\":{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"active\",\"alert\":{\"title\":\"Test Title\",\"body\":\"Test Body\"}}}");
+        assert_eq!(json, "{\"aps\":{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"active\",\"sound\":\"chime.caf\",\"alert\":{\"title\":\"Test Title\",\"body\":\"Test Body\"}},\"icon\":\"https://github.com/66f94eae/bark-dev/raw/main/bot.jpg\"}");
     }
 }

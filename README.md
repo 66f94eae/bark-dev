@@ -2,9 +2,7 @@
 
 ## Overview
 
-OverWrite the code [直接调用apns接口](https://bark.day.app/#/apns?id=%e7%9b%b4%e6%8e%a5%e8%b0%83%e7%94%a8apns%e6%8e%a5%e5%8f%a3)
-
-This library is for someone developed in Rust for sending push notifications to iOS devices which has instaledthe [Bark](https://github.com/imnotjames/bark) app.
+This library is for someone developed in Rust for sending push notifications to iOS devices which has installed the [Bark](https://github.com/Finb/Bark) app.
 
 The message is directly sent to APNS server, so it is very fast and safe.
 
