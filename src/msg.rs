@@ -112,6 +112,17 @@ pub enum Level {
     PASSIVE
 }
 
+impl Level {
+    pub fn from_str(str: &str) -> Option<Self> {
+        match str.to_lowercase().as_str() {
+            "timesensitive" => Some(Self::TIMESENSITIVE),
+            "passive" => Some(Self::PASSIVE),
+            "active" => Some(Self::ACTIVE),
+            _ => None
+        }
+    }
+}
+
 impl Display for Level {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = 
