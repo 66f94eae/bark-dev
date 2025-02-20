@@ -56,16 +56,11 @@ where
 {
     let devices: Vec<String> = devices.into_iter().collect::<Vec<_>>(); 
     match do_send(msg, topic, token, devices.clone().into_iter()).await {
-        Ok(tasks) => {
-            Some(
-                tasks
-                    .iter()
-                    .map(|task| 
-                        {
-                            task.0.clone()
-                        })
-                        .collect()
-            )
+        Ok(results) => {
+            if results.is_empty() {
+                return None;
+            }
+            Some(results.keys().map(|device| device.to_string()).collect::<Vec<String>>())
         },
         Err(e) => {
             eprintln!("all failed: {}", e.to_string());
@@ -81,7 +76,7 @@ where
     T: Iterator<Item = String>
 {
     let client: reqwest::Client = reqwest::ClientBuilder::new().http2_prior_knowledge().build().unwrap();
-    let mut tasks: HashMap<String, String> = HashMap::new();
+    let mut results: HashMap<String, String> = HashMap::new();
     let body: String = msg.serialize();
     let devices: HashSet<String> = devices.collect::<HashSet<String>>();
     for device  in devices {
@@ -97,22 +92,26 @@ where
             Ok(resp) => {
                 if ! resp.status().is_success() {
                     let sc = resp.status().as_u16().to_string();
-                    match resp.text().await {
-                        Ok(text) => {
-                            tasks.insert(device.to_string(), sc + text.as_str());
-                        },
-                        Err(e) => {
-                            eprint!("{}", e.to_string());
-                            tasks.insert(device.to_string(), sc + e.to_string().as_str());
+                    if let Some(len) = resp.content_length() {
+                        if len > 2 {
+                            match resp.text().await {
+                                Ok(text) => {
+                                    results.insert(device.to_string(), sc + text.as_str());
+                                },
+                                Err(e) => {
+                                    eprint!("{}", e.to_string());
+                                    results.insert(device.to_string(), sc + e.to_string().as_str());
+                                }
+                            }
                         }
-                    } 
+                    }
                 }
             },
             Err(e) => {
                 eprintln!("send to {} failed: {}", device, e.to_string());
-                tasks.insert(device.to_string(), e.to_string());
+                results.insert(device.to_string(), e.to_string());
             }
         }
     }
-    Ok(tasks)
+    Ok(results)
 }
