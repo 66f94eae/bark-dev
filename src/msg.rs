@@ -522,7 +522,7 @@ impl Msg {
         self
     }
 
-    pub fn set_id(&mut self, msg_id: &str) -> &mut self {
+    pub fn set_id(&mut self, msg_id: &str) -> &mut Self {
         if msg_id.as_bytes().len() >= 64 {
             panic!("Invalid msg_id length.The value of this key must not exceed 64 bytes.");
         }
