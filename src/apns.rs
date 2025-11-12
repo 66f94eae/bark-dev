@@ -23,6 +23,7 @@
 
 use crate::msg::Msg;
 use std::{collections::{HashMap, HashSet}, io::Error};
+use reqwest::header::HeaderValue;
 
 const APNS_HOST: &str = "api.push.apple.com";
 
@@ -76,6 +77,17 @@ where
     T: Iterator<Item = String>
 {
     let client: reqwest::Client = reqwest::ClientBuilder::new().http2_prior_knowledge().build().unwrap();
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert("apns-topic", HeaderValue::from_str(topic).unwrap());
+    if let Some(msg_id) = msg.get_id() {
+        headers.insert("apns-collapse-id", HeaderValue::from_str(&msg_id).unwrap());
+    }
+    if msg.is_deleted() && msg.get_id().is_some() {
+        headers.insert("apns-push-type", HeaderValue::from_str("background").unwrap());
+    } else {
+        headers.insert("apns-push-type", HeaderValue::from_str("alert").unwrap());
+    }
+
     let mut results: HashMap<String, String> = HashMap::new();
     let body: String = msg.serialize();
     let devices: HashSet<String> = devices.collect::<HashSet<String>>();
@@ -84,8 +96,7 @@ where
                 client
                     .post(format!("https://{host}/3/device/{device}", host = APNS_HOST, device = device))
                     .bearer_auth(token)
-                    .header("apns-push-type", "alert")
-                    .header("apns-topic", topic)
+                    .headers(headers.clone())
                     .body(body.clone())
                     .send().await;
         match resp {
@@ -96,6 +107,7 @@ where
                         if len > 2 {
                             match resp.text().await {
                                 Ok(text) => {
+                                    println!("resp body: {}", text);
                                     results.insert(device.to_string(), sc + text.as_str());
                                 },
                                 Err(e) => {

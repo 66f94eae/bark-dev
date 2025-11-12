@@ -95,6 +95,10 @@ pub struct Msg {
     key: Option<String>,
     /// cipher
     cipher: Option<Cipher>,
+    /// message id
+    id: Option<String>,
+    /// delete flag
+    is_deleted: Option<bool>,
 }
 
 
@@ -231,6 +235,19 @@ impl Msg {
             mode: None,
             key: None,
             cipher: None,
+            id: None,
+            is_deleted: None,
+        }
+    }
+
+    pub fn get_id(&self) -> Option<String> {
+        self.id.clone()
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        match self.is_deleted {
+            Some(x) => x == true,
+            None => false
         }
     }
 
@@ -505,6 +522,19 @@ impl Msg {
         self
     }
 
+    pub fn set_id(&mut self, msg_id: &str) -> &mut self {
+        if msg_id.as_bytes().len() >= 64 {
+            panic!("Invalid msg_id length.The value of this key must not exceed 64 bytes.");
+        }
+        self.id = Some(msg_id.to_string());
+        self
+    }
+
+    pub fn set_deleted(&mut self) -> &mut Self {
+        self.is_deleted = Some(true);
+        self
+    }
+
     fn json(&self, encry_body: Option<String>) -> String {
         let mut body: String = format!("{{\"aps\":{{\"mutable-content\":1,\"category\":\"myNotificationCategory\",\"interruption-level\":\"{level}\",", level = self.level.unwrap_or_else(|| Level::ACTIVE));
 
@@ -606,6 +636,11 @@ impl Msg {
     /// # Returns
     /// A `String` containing the serialized message.
     pub fn serialize(&self) -> String {
+        if let Some(id) = &self.id {
+            if self.is_deleted() {
+                return format!("{{\"aps\":{{\"content-available\":1}},\"delete\":\"1\",\"id\":\"{id}\"}}");
+            }
+        }
         if self.cipher.is_some() {
             match self.encrypt() {
                 Ok(encrypted) => encrypted,
